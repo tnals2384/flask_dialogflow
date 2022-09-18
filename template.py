@@ -1,10 +1,11 @@
+from asyncio.windows_events import NULL
 from pymongo import MongoClient
 from flask import Flask, request
 app = Flask(__name__)
 
 import datetime
 
-client = MongoClient('localhost', 27017)
+client = MongoClient("mongodb+srv://hanieminha:performance888@haniemchatbot.pvxxz0o.mongodb.net/test")
 db = client.chatbot
 collection = db.performance
 
@@ -12,7 +13,6 @@ collection = db.performance
 def hello():
     return 'hello world'
    
-
 @app.route('/webhook',methods=['GET','POST'])
 def webhook():
   req = request.get_json(force=True)
@@ -21,7 +21,7 @@ def webhook():
   genre=''
   column=[]
   query_result = req.get('queryResult')
- 
+  
    
   if query_result.get('action') == 'ask.date' : #날짜로 질문했을 때
     date1 = str(query_result.get('parameters').get('date-time'))  
@@ -36,9 +36,14 @@ def webhook():
    
     
     for i in title:
+        #제목에 글자수 제한이 있음. 30넘으면 그냥 출력 pass
+        if len(i['title'])> 30:
+            continue
+        
         fulfillmentText=i['title']
         thumbnail=i['poster']
         genre=i['genre']
+        
         
         col = {
                     "thumbnailImageUrl": thumbnail,
@@ -52,9 +57,9 @@ def webhook():
                     },
                     "actions": [
                     {
-                        "type": "postback",
-                        "label": "More Information",
-                        "data": "action=buy&itemid=111"
+                        "type": "message",
+                        "label": "View Detail",
+                        "text": fulfillmentText+" 세부 정보 알려줘", #누르면 세부정보 message보내지게함
                     },
                     {
                         "type": "uri",
@@ -66,9 +71,7 @@ def webhook():
         column.append(col);
        
     
-    #print(fulfillmentText)
-    #print(thumbnail)
-    #print(genre)
+   
     return { 
         "fulfillmentMessages": [
         {
@@ -81,14 +84,42 @@ def webhook():
                     "columns": column,
                 "imageAspectRatio": "rectangle",
                 "imageSize": "cover"
-                }
-            }
+                },
+            },
                     
         },
         "platform": "LINE"
         },
-        ]
+        {
+        "payload": {
+            "line": {
+                "type": "template",
+                "altText": "This is a buttons template",
+                "template": {
+                    "type": "buttons",
+                    "title": "More information",
+                    "text": "더많은 공연이 궁금하신가요?",
+                    "defaultAction": {
+                    "type": "message",
+                    "label": "공연 10개 더보기",
+                    "text": "공연 10개 더 보여줘"
+                    },
+                    "actions": [
+                    {
+                        "type": "message",
+                        "label": "공연 10개 더보기",
+                        "text": "공연 10개 더 보여줘" #누르면 세부정보 message보내지게함
+                    },
+                    ]
+                 },
+            },
+        },
+        "platform": "LINE"
+        }
+        ],
     }
+    
+
 
     
 
