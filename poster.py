@@ -1,9 +1,7 @@
 from flask import Flask
 from pymongo import MongoClient
-import requests
 
-
-client = MongoClient('localhost', 27017)
+client = MongoClient("mongodb+srv://hanieminha:performance888@haniemchatbot.pvxxz0o.mongodb.net/test")
 db = client.chatbot
 collection = db.performance
 Poster=''

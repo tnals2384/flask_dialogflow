@@ -4,7 +4,7 @@ import requests
 import json
 import xmltodict
 
-client = MongoClient('localhost', 27017)
+client = MongoClient("mongodb+srv://hanieminha:performance888@haniemchatbot.pvxxz0o.mongodb.net/test")
 db = client.chatbot
 collection = db.performance
 
@@ -17,7 +17,7 @@ params = {
         'stdate' : 20220101,
         'eddate' : 20221231,
         'rows' : 4000,
-        'cpage': 2
+        'cpage': 1
 }
 
 res = requests.get(url=url,params=params)

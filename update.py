@@ -4,7 +4,7 @@ import requests
 import json
 import xmltodict
 
-client = MongoClient('localhost', 27017)
+client = MongoClient("mongodb+srv://hanieminha:performance888@haniemchatbot.pvxxz0o.mongodb.net/test")
 db = client.chatbot
 collection = db.performance
 
@@ -36,6 +36,6 @@ for i in id:
         collection.update_one({"perfoID":perfoid},{ "$set": {"poster":poster, "price":price
             , "cast":cast, "time":time}})
     except:
-        continue
+        collection.delete_one({"perfoID":perfoid})
     
 
