@@ -2,7 +2,7 @@ from asyncio.windows_events import NULL
 from pymongo import MongoClient
 from flask import Flask, request
 app = Flask(__name__)
-
+from rank import ask_rank
 import datetime
 
 client = MongoClient("mongodb+srv://hanieminha:performance888@haniemchatbot.pvxxz0o.mongodb.net/test")
@@ -15,37 +15,90 @@ def hello():
    
 @app.route('/webhook',methods=['GET','POST'])
 def webhook():
-  req = request.get_json(force=True)
-  fulfillmentText = ''
-  thumbnail=''
-  genre=''
-  column=[]
-  query_result = req.get('queryResult')
-  
-   
-  if query_result.get('action') == 'ask.date' : #날짜로 질문했을 때
-    date1 = str(query_result.get('parameters').get('date-time'))  
-    dateformat = '%Y-%m-%dT%H:%M:%S+09:00' 
-    date_obj = datetime.datetime.strptime(date1, dateformat) #datetime으로 변환  
+    req = request.get_json(force=True)
+    fulfillmentText = ''
+    thumbnail=''
+    genre=''
+    column=[]
+    query_result = req.get('queryResult')
+    
+     # 순위 질문했을 때
+    if query_result.get('intent').get('displayName') == 'ask.rank':
+        return ask_rank()
+    
+    if query_result.get('action') == 'ask.date' : #날짜로 질문했을 때
+            
+        date = str(query_result.get('parameters').get('date-time'))
+        if date.startswith('{') :
+            date1 = str(query_result.get('parameters').get('date-time').get('startDate'))
+            date2 = str(query_result.get('parameters').get('date-time').get('endDate')) 
 
-    result=date_obj.strftime("%Y.%m.%d") #쿼리에 사용할 형식의 string으로 변환
-    
-    title = collection.find( #db에서 날짜에 해당하는 data찾기
-        { "$and":[{"stdate" : {"$lte": result}},{"eddate" : {"$gte": result}}] }, 
-        {"_id":0,"title":1,"poster":1,"genre":1}).limit(10)
-   
-    
-    for i in title:
-        #제목에 글자수 제한이 있음. 30넘으면 그냥 출력 pass
-        if len(i['title'])> 30:
-            continue
+            dateformat = '%Y-%m-%dT%H:%M:%S+09:00' 
+            date_obj = datetime.datetime.strptime(date1, dateformat) #datetime으로 변환
+            date_obj2 = datetime.datetime.strptime(date2, dateformat) #datetime으로 변환  
+              
+
+            stDate = date_obj.strftime("%Y.%m.%d") #쿼리에 사용할 형식의 string으로 변환
+            edDate = date_obj2.strftime("%Y.%m.%d")
+            
+            title = collection.find( #db에서 날짜에 해당하는 data찾기
+                { "$and":[{"stdate" : {"$gte": stDate}},{"eddate" : {"$lte": edDate}}] }, 
+                {"_id":0,"title":1,"poster":1,"genre":1}).limit(10)
+            
+            for i in title:
+                #제목에 글자수 제한이 있음. 30넘으면 그냥 출력 pass
+                if len(i['title'])> 30:
+                    continue
+                
+                fulfillmentText=i['title']
+                thumbnail=i['poster']
+                genre=i['genre']
+                
+                col = {
+                "thumbnailImageUrl": thumbnail,
+                "imageBackgroundColor": "#FFFFFF",
+                "title": fulfillmentText,
+                "text": genre,
+                "defaultAction": {
+                "type": "uri",
+                "label": "View detail",
+                "uri": "http://example.com/page/123"
+                },
+                "actions": [
+                {
+                    "type": "message",
+                    "label": "View Detail",
+                    "text": fulfillmentText+" 세부 정보 알려줘", #누르면 세부정보 message보내지게함
+                },
+                {
+                    "type": "uri",
+                    "label": "View detail",
+                    "uri": "http://example.com/page/111"
+                }
+                ]
+                }
+                column.append(col);
+                
+        else : 
+            dateformat = '%Y-%m-%dT%H:%M:%S+09:00'
+            date_obj = datetime.datetime.strptime(date, dateformat) #datetime으로 변환  
+
+            result = date_obj.strftime("%Y.%m.%d") #쿼리에 사용할 형식의 string으로 변환
+            title = collection.find( #db에서 날짜에 해당하는 data찾기
+                { "$and":[{"stdate" : {"$lte": result}},{"eddate" : {"$gte": result}}] }, 
+                {"_id":0,"title":1,"poster":1,"genre":1}).limit(10)
         
-        fulfillmentText=i['title']
-        thumbnail=i['poster']
-        genre=i['genre']
-        
-        
-        col = {
+            
+            for i in title:
+                #제목에 글자수 제한이 있음. 30넘으면 그냥 출력 pass
+                if len(i['title']) > 30:
+                    continue
+                
+                fulfillmentText=i['title']
+                thumbnail=i['poster']
+                genre=i['genre']
+
+                col = {
                     "thumbnailImageUrl": thumbnail,
                     "imageBackgroundColor": "#FFFFFF",
                     "title": fulfillmentText,
@@ -67,8 +120,10 @@ def webhook():
                         "uri": "http://example.com/page/111"
                     }
                     ]
-        }
-        column.append(col);
+                }
+                column.append(col);
+                
+        
        
     
    
@@ -119,10 +174,6 @@ def webhook():
         ],
     }
     
-
-
-    
-
 if __name__ =='__main__':
     #port = int(os.getenv('PORT',80))
     app.run(host='0.0.0.0',port=5000)
